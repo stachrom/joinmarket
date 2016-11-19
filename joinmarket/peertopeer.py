@@ -9,7 +9,6 @@ from joinmarket.socks import socksocket, setdefaultproxy, PROXY_TYPE_SOCKS5
 from joinmarket.support import get_log
 
 import bitcoin as btc
-import socks
 log = get_log()
 
 PROTOCOL_VERSION = 70012
