@@ -12,12 +12,14 @@ import json
 from decimal import InvalidOperation, Decimal
 
 import bitcoin as btc
-from joinmarket.configure import jm_single, get_p2pk_vbyte, donation_address
+from joinmarket.configure import jm_single, get_p2pk_vbyte, donation_address, \
+    get_network
 from joinmarket.enc_wrapper import init_keypair, as_init_encryption, init_pubkey, \
      NaclError
 from joinmarket.support import get_log, calc_cj_fee
 from joinmarket.wallet import estimate_tx_fee
 from joinmarket.irc import B_PER_SEC
+from joinmarket.peertopeer import P2PProtocol, P2PBroadcastTx
 
 log = get_log()
 
@@ -401,6 +403,16 @@ class CoinJoinTX(object):
             counterparty = crow['counterparty']
             log.info('pushing tx to ' + counterparty)
             self.msgchan.push_tx(counterparty, tx)
+            pushed = True
+        elif tx_broadcast == 'tor':
+            socks5_host = jm_single().config.get("MESSAGING",
+                "socks5_host").split(",")[0]
+            socks5_port = int(jm_single().config.get("MESSAGING",
+                "socks5_port").split(",")[0])
+            p2p_msg_handler = P2PBroadcastTx(tx)
+            p2p = P2PProtocol(p2p_msg_handler, testnet=(get_network() ==
+                "testnet"), socks5_hostport=(socks5_host, socks5_port))
+            p2p.run()
             pushed = True
 
         if not pushed:
