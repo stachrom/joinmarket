@@ -19,7 +19,7 @@ from joinmarket.enc_wrapper import init_keypair, as_init_encryption, init_pubkey
 from joinmarket.support import get_log, calc_cj_fee
 from joinmarket.wallet import estimate_tx_fee
 from joinmarket.irc import B_PER_SEC
-from joinmarket.peertopeer import P2PProtocol, P2PBroadcastTx
+from joinmarket.peertopeer import tor_broadcast_tx
 
 log = get_log()
 
@@ -409,11 +409,8 @@ class CoinJoinTX(object):
                 "socks5_host").split(",")[0]
             socks5_port = int(jm_single().config.get("MESSAGING",
                 "socks5_port").split(",")[0])
-            p2p_msg_handler = P2PBroadcastTx(tx)
-            p2p = P2PProtocol(p2p_msg_handler, testnet=(get_network() ==
-                "testnet"), socks5_hostport=(socks5_host, socks5_port))
-            p2p.run()
-            pushed = True
+            pushed = tor_broadcast_tx(tx, (socks5_host, socks5_port),
+                testnet=(get_network() == "testnet"))
 
         if not pushed:
             log.error('unable to pushtx')

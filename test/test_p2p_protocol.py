@@ -10,7 +10,7 @@ import pytest
 
 import bitcoin as btc
 from joinmarket import load_program_config, jm_single, get_p2pk_vbyte
-from joinmarket import P2PProtocol, P2PBroadcastTx
+from joinmarket import tor_broadcast_tx
 
 def test_p2p_broadcast(setup_tx_notify):
     #listen up kids, dont do this to generate private
@@ -34,18 +34,28 @@ def test_p2p_broadcast(setup_tx_notify):
     tx = btc.mktx(inputs, outs)
     tx = btc.sign(tx, 0, src_privkey)
 
-    utxo_b = jm_single().bc_interface.rpc('listunspent', [0, 500, [dst_addr]])
+    bad_tx = random.getrandbits(len(tx)*4)
+    bad_tx = btc.encode(bad_tx, 16, len(tx))
+
+    utxo_before = jm_single().bc_interface.rpc('listunspent', [0, 500, [dst_addr]])
 
     #jm_single().bc_interface.rpc('sendrawtransaction', [tx])
-    p2p_msg_handler = P2PBroadcastTx(tx)
-    p2p = P2PProtocol(p2p_msg_handler, testnet='regtest',
+    pushed = tor_broadcast_tx(tx, None, 'regtest',
         remote_hostport=('localhost', 18444))
-    p2p.run()
+    assert pushed
+
+    pushed = tor_broadcast_tx(tx, None, 'regtest',
+        remote_hostport=('localhost', 18444))
+    assert not pushed #node should already have the same tx, reject
+
+    pushed = tor_broadcast_tx(bad_tx, None, 'regtest',
+        remote_hostport=('localhost', 18444))
+    assert not pushed #bad tx should be rejected
 
     jm_single().bc_interface.rpc('generate', [1])
-    utxo_a  = jm_single().bc_interface.rpc('listunspent', [0, 500, [dst_addr]])
+    utxo_after  = jm_single().bc_interface.rpc('listunspent', [0, 500, [dst_addr]])
 
-    return len(utxo_a) - 1 == len(utxo_b)
+    return len(utxo_after) - 1 == len(utxo_before)
 
 @pytest.fixture(scope="module")
 def setup_tx_notify():
