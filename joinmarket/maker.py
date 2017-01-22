@@ -196,6 +196,12 @@ class CoinJoinOrder(object):
             self.maker.wallet_unspent_lock.release()
         log.info('tx in a block')
         log.info('earned = ' + str(self.real_cjfee - self.txfee))
+	
+        ### PUSHBULLET STUFF
+        from pushbullet import notify_pushbullet
+        notify_pushbullet(self.real_cjfee, self.txfee)
+        ### PUSHBULLET END
+	
         to_cancel, to_announce = self.maker.on_tx_confirmed(self, confirmations,
                                                             txid)
         self.maker.modify_orders(to_cancel, to_announce)
